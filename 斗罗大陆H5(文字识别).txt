@@ -1,51 +1,33 @@
 Dim g_pushplus_token
 g_pushplus_token = "68432ce5b7f44da68c3be680c3979dee"
-
-// 全局坐标变量定义
-Dim g_ad_close_x, g_ad_close_y
-Dim g_close_btn_x1, g_close_btn_y1, g_close_btn_x2, g_close_btn_y2
-Dim g_signin_x, g_signin_y
-Dim g_confirm_btn_x1, g_confirm_btn_y1, g_confirm_btn_x2, g_confirm_btn_y2
-Dim g_fish_btn_x, g_fish_btn_y
-Dim g_login_text_x1, g_login_text_y1, g_login_text_x2, g_login_text_y2
-
-// 自动钓鱼相关变量
-Dim g_fish_p1_x, g_fish_p1_y
-Dim g_fish_p2_x, g_fish_p2_y
-Dim g_fish_img
-Dim g_fish_color
-Dim g_fish_p3_x, g_fish_p3_y
-Dim g_fish_count
-
-// 全局颜色变量定义
-Dim g_signInColor, g_fishBtnColor, g_loginTitleColor, g_loginButtonColor
-
+Import "File.lua"
 // 加载分辨率配置文件
 Dim g_config_content
-g_config_content = LoadResolutionFile()
 
 // 初始化分辨率 (默认为 1280x720)
-Call InitResolution(1280, 720)
+g_config_content = InitResolution(1280, 720)
+
+TracePrint "登录按钮X坐标：" & g_config_content["登录按钮"]["x2"]
+
 
 // 加载分辨率配置文件
 // 功能: 删除旧文件、释放附件、读取并打印内容
 // 返回值: 文件内容字符串
 Function LoadResolutionFile()
     Dim path, content
-    // 设置配置文件路径 (默认为 SD 卡根目录下的 resolution_config.txt)
-    path = GetSdcardDir() & "/resolution_config.txt"
+    path = GetSdcardDir() & "/分辨率坐标.json"
     
     // 1. 检测并删除旧文件
     // 注意: 不同版本的按键精灵可能有不同的文件检测命令，这里使用通用的 File.Exist
-    If File.Exist(path) Then 
-        File.Delete(path)
+    If dir.Exist(path) Then 
+        dir.Delete(path)
         TracePrint "旧配置文件已删除: " & path
     End If
     
     // 2. 释放附件中的配置文件
     // PutAttachment 释放附件到指定目录
     // 参数1: 目标目录, 参数2: 附件文件名 (可选, 不填则释放所有)
-    PutAttachment GetSdcardDir(), "resolution_config.txt"
+    PutAttachment GetSdcardDir(), "分辨率坐标.json"
     TracePrint "尝试释放配置文件到: " & path
     
     // 3. 读取文件内容
@@ -56,7 +38,7 @@ Function LoadResolutionFile()
         TracePrint "配置文件内容读取成功："
         TracePrint content
     Else
-        TracePrint "配置文件内容为空或读取失败！请检查附件中是否存在 resolution_config.txt"
+        TracePrint "配置文件内容为空或读取失败！请检查附件中是否存在 分辨率坐标.json"
     End If
     
     LoadResolutionFile = content
@@ -64,15 +46,16 @@ End Function
 
 // 初始化分辨率配置
 // 参数: w - 宽度, h - 高度
-// 返回值: 无
+// 返回值: 配置表或Null
 Function InitResolution(w, h)
+    Dim content
+    content = LoadResolutionFile()
     Dim config_table, res_key, res_config
-    
     // 尝试解析配置文件
-    If g_config_content <> "" And g_config_content <> Null Then
+    If content <> "" And content <> Null Then
         // 注意：Encode.JsonToTable 是按键精灵常用的 JSON 解析函数
         // 如果环境不支持，可能需要手动解析或使用正则表达式
-        config_table = Encode.JsonToTable(g_config_content)
+        config_table = Encode.JsonToTable(content)
         res_key = w & "*" & h
         
         If config_table[res_key] Then
@@ -82,124 +65,17 @@ Function InitResolution(w, h)
             // 尝试从配置中读取坐标 (如果存在则覆盖默认值)
             // 示例映射：将 JSON 中的 "登录按钮" 映射到 g_login_button (需自行定义)
             // 这里仅作演示，实际需根据 JSON 键名修改
-            
-            If res_config["登录按钮"] Then
-                // 假设登录按钮对应 g_login_text 的位置 (仅作示例)
-                // g_login_text_x1 = res_config["登录按钮"][1]
-                // g_login_text_y1 = res_config["登录按钮"][2]
-                TracePrint "读取到登录按钮坐标: " & res_config["登录按钮"][1] & "," & res_config["登录按钮"][2]
-            End If
-            
-            // 如果 JSON 中包含脚本所需的完整配置，可以直接赋值
-            // 例如：
-            // If res_config["ad_close"] Then
-            //     g_ad_close_x = res_config["ad_close"][1]
-            //     g_ad_close_y = res_config["ad_close"][2]
-            // End If
-            
+            InitResolution = res_config
         Else
             TracePrint "配置文件中未找到分辨率: " & res_key & "，使用默认配置"
+            InitResolution = Null
         End If
-    End If
-
-    If w = 1280 And h = 720 Then
-        // 1280x720 分辨率配置 (默认值)
-        // ... (保持原有默认值代码不变)
-        g_ad_close_x = 1200
-        g_ad_close_y = 50
-        
-        g_close_btn_x1 = 1100
-        g_close_btn_y1 = 50
-        g_close_btn_x2 = 1200
-        g_close_btn_y2 = 150
-        
-        g_signin_x = 100
-        g_signin_y = 100
-        
-        g_confirm_btn_x1 = 500
-        g_confirm_btn_y1 = 300
-        g_confirm_btn_x2 = 700
-        g_confirm_btn_y2 = 400
-        
-        g_fish_btn_x = 200
-        g_fish_btn_y = 200
-        
-        g_login_text_x1 = 500
-        g_login_text_y1 = 500
-        g_login_text_x2 = 700
-        g_login_text_y2 = 600
-        
-        // 自动钓鱼配置 (待填)
-        g_fish_p1_x = 0
-        g_fish_p1_y = 0
-        g_fish_p2_x = 0
-        g_fish_p2_y = 0
-        g_fish_img = "Attachment:20260203124901962.png"
-        g_fish_color = "FFFEB4"
-        g_fish_p3_x = 0
-        g_fish_p3_y = 0
-        g_fish_count = 99999
-        
-        // 颜色配置 (需重新取色)
-        g_signInColor = ""
-        g_fishBtnColor = ""
-        g_loginTitleColor = ""
-        g_loginButtonColor = ""
-        
-        // 如果配置文件中有对应的值，覆盖默认值
-        If res_config Then
-             // 在此处添加映射逻辑，例如：
-             // if res_config["登录按钮"] Then 
-             //     g_login_text_x1 = res_config["登录按钮"][1]
-             //     g_login_text_y1 = res_config["登录按钮"][2]
-             // End If
-        End If
-        
-    ElseIf w = 720 And h = 1280 Then
-        // 720x1280 分辨率配置 (原脚本配置)
-        g_ad_close_x = 51
-        g_ad_close_y = 1040
-        
-        g_close_btn_x1 = 638
-        g_close_btn_y1 = 1117
-        g_close_btn_x2 = 719
-        g_close_btn_y2 = 1201
-        
-        g_signin_x = 45
-        g_signin_y = 969 
-        
-        g_confirm_btn_x1 = 142
-        g_confirm_btn_y1 = 391
-        g_confirm_btn_x2 = 303
-        g_confirm_btn_y2 = 800
-        
-        g_fish_btn_x = 68
-        g_fish_btn_y = 628
-        
-        g_login_text_x1 = 670
-        g_login_text_y1 = 1054
-        g_login_text_x2 = 698
-        g_login_text_y2 = 1253
-        
-        // 自动钓鱼配置
-        g_fish_p1_x = 596
-        g_fish_p1_y = 1002
-        g_fish_p2_x = 195
-        g_fish_p2_y = 1029
-        g_fish_img = "Attachment:20260203124901962.png"
-        g_fish_color = "FFFEB4"
-        g_fish_p3_x = 202
-        g_fish_p3_y = 1173
-        g_fish_count = 99999
-        
-        g_signInColor = "646|176|757575,646|288|757575,646|399|757575,646|505|757575,646|586|757575,646|604|757575,646|955|757575,646|1103|757575"
-        g_fishBtnColor = "58|565|D2AB56,68|565|D2AB56,70|569|D2AB56,79|577|D2AB56,77|584|D2AB56,70|593|C09D51,43|596|D2AB56,40|577|D2AB56"
-        g_loginTitleColor = "691|31|757575,691|32|757575,691|34|757575,691|36|757575,691|37|757575,691|38|757575,691|39|757575,691|40|757575,691|41|757575"
-        g_loginButtonColor = "694|1061|FFFFFF,700|1073|0000E8,703|1092|0000E5,701|1103|0000E5,700|1118|0000E8,702|1134|0000E5,700|1159|0000E8,696|1178|FFFFFF,696|1207|FFFFFF,701|1233|0000E5"
+    Else
+        InitResolution = Null
     End If
 End Function
 
-Call 自动钓鱼循环(g_fish_p1_x, g_fish_p1_y, g_fish_p2_x, g_fish_p2_y, g_fish_img, g_fish_color, g_fish_p3_x, g_fish_p3_y, g_fish_count)
+
 
 
 // 重启
@@ -207,41 +83,14 @@ Call 自动钓鱼循环(g_fish_p1_x, g_fish_p1_y, g_fish_p2_x, g_fish_p2_y, g_fi
 // 返回值: 无
 Function 重启()
     Dim x1,y1,upx,upy
-    
-    If Sys.IsRunning("com.bandainamcoent.saoifww") = True Then 
-        KillApp "com.bandainamcoent.saoifww"
+    If Sys.IsRunning("com.df.dldldjbzf.s") = True Then 
+        KillApp "com.df.dldldjbzf.s"
         Delay 1000
     End If
-    RunApp "com.bandainamcoent.saoifww"
+    RunApp "com.df.dldldjbzf.s"
     Delay 500
     Do
-        Tap g_ad_close_x, g_ad_close_y
-        FindPic g_close_btn_x1, g_close_btn_y1, g_close_btn_x2, g_close_btn_y2,"Attachment:close.png","000000",0,0.9,x1,y1
-        If x1 > -1 And y1 > -1 Then
-            Tap x1,y1
-        End If
-        If CmpColorEx(g_signInColor,0.9) = 1 Then
-            TracePrint "检查到签到界面，开始签到"
-            Delay 500
-            Tap g_signin_x, g_signin_y
-        End If
-
-        FindPic g_confirm_btn_x1, g_confirm_btn_y1, g_confirm_btn_x2, g_confirm_btn_y2,"Attachment:确认按钮.png","000000",0,0.9,upx,upy
-        If upx > -1 And upy > -1 Then
-            Tap upx,upy
-        End If
-        If CmpColorEx(g_fishBtnColor,0.9) = 1 Then
-            Tap g_fish_btn_x, g_fish_btn_y
-        End If
-        If CmpColorEx(g_loginTitleColor, 0.9) = 1 Then 
-            Dim login = 识别区域文字(g_login_text_x1, g_login_text_y1, g_login_text_x2, g_login_text_y2)
-            If login <> "BANDAINAMCO" Then 
-                TracePrint "登陆成功"
-                Exit Function
-            End If
-            
-        End If
-        Delay 1500
+       
     Loop
 End Function
 
@@ -324,4 +173,3 @@ Function 发送PushPlus(token, title, content)
     发送PushPlus = resp
     TracePrint "PushPlus返回：" & resp
 End Function
-
