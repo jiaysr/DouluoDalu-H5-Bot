@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>斗罗大陆H5 账号分析</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .filter-panel {
+            background-color: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .filter-group label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .filter-input, .filter-select {
+            padding: 6px 10px;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .filter-input:focus, .filter-select:focus {
+            border-color: #1890ff;
+            outline: none;
+        }
+        .btn {
+            padding: 6px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background-color: #1890ff;
+            color: white;
+        }
+        .btn-success {
+            background-color: #52c41a;
+            color: white;
+        }
+        .btn-reset {
+            background-color: #f5f5f5;
+            color: #333;
+            border: 1px solid #d9d9d9;
+        }
+        .account-card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .account-header {
+            background-color: #1890ff;
+            color: #fff;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .account-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+        .sub-account-list {
+            padding: 15px;
+        }
+        .sub-account-item {
+            border: 1px solid #e8e8e8;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            padding: 15px;
+            transition: all 0.3s;
+        }
+        .sub-account-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .sub-account-info {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .info-tag {
+            background-color: #f5f5f5;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 12px;
+            margin-right: 10px;
+            margin-bottom: 5px;
+            color: #666;
+        }
+        .role-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .role-badge {
+            background-color: #e6f7ff;
+            border: 1px solid #91d5ff;
+            color: #1890ff;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+        }
+        .role-badge .level-name {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        .role-badge.need-breakthrough {
+            background-color: #fff1f0;
+            border-color: #ffa39e;
+            color: #cf1322;
+        }
+        .breakthrough-tip {
+            font-size: 12px;
+            margin-left: 5px;
+            background-color: #cf1322;
+            color: white;
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+        .warning {
+            color: #cf1322;
+            background-color: #fff1f0;
+            border-color: #ffa39e;
+        }
+        .success {
+            color: #389e0d;
+            background-color: #f6ffed;
+            border-color: #b7eb8f;
+        }
+        .status-badge {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            color: #fff;
+            white-space: nowrap; /* 防止换行 */
+        }
+        .status-active {
+            background-color: #52c41a;
+        }
+        .status-inactive {
+            background-color: #ff4d4f;
+        }
+        .grid-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); /* 增加最小宽度 */
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .info-cell {
+            display: flex;
+            align-items: center;
+            flex-wrap: nowrap; /* 确保内容不换行 */
+        }
+        .label {
+            color: #888;
+            font-size: 12px;
+            white-space: nowrap; /* 标签也不换行 */
+            margin-right: 5px;
+        }
+        .value {
+            font-weight: 500;
+        }
+        .copy-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-left: 8px;
+            transition: all 0.2s;
+        }
+        .copy-btn:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        .copy-btn:active {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 4px;
+            z-index: 1000;
+            display: none;
+            animation: fadeIn 0.3s, fadeOut 0.3s 1.7s;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+    </style>
+</head>
+<body>
+    <div id="toast" class="toast">复制成功</div>
+    <div class="container">
+        <div class="header">
+            <h1>斗罗大陆H5 账号分析报表</h1>
+            <p>生成时间: <span id="report-time"></span></p>
+            <div style="margin-top: 10px;">
+                <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="handleFileSelect(event)">
+                <button onclick="document.getElementById('fileInput').click()" class="btn btn-primary">选择账号.json文件</button>
+                <button onclick="loadDefaultData()" class="btn btn-success" style="margin-left: 10px;">加载默认示例</button>
+            </div>
+        </div>
+
+        <div class="filter-panel">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>搜索:</label>
+                    <input type="text" id="searchText" class="filter-input" placeholder="账号/用户名/角色名" oninput="applyFilters()">
+                </div>
+                <div class="filter-group">
+                    <label>活跃度:</label>
+                    <select id="activityFilter" class="filter-select" onchange="applyFilters()">
+                        <option value="all">全部</option>
+                        <option value="low">不足120</option>
+                        <option value="high">达到120</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>今日运行:</label>
+                    <select id="runStatusFilter" class="filter-select" onchange="applyFilters()">
+                        <option value="all">全部</option>
+                        <option value="yes">已运行</option>
+                        <option value="no">未运行</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>需要突破:</label>
+                    <select id="breakFilter" class="filter-select" onchange="applyFilters()">
+                        <option value="all">全部</option>
+                        <option value="yes">是</option>
+                        <option value="no">否</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>钻石数:</label>
+                    <input type="number" id="diamondMin" class="filter-input" placeholder="最小值" style="width: 80px;" oninput="applyFilters()">
+                    <span>-</span>
+                    <input type="number" id="diamondMax" class="filter-input" placeholder="最大值" style="width: 80px;" oninput="applyFilters()">
+                </div>
+                <div class="filter-group">
+                    <label>代金币:</label>
+                    <input type="number" id="coinMin" class="filter-input" placeholder="最小值" style="width: 80px;" oninput="applyFilters()">
+                    <span>-</span>
+                    <input type="number" id="coinMax" class="filter-input" placeholder="最大值" style="width: 80px;" oninput="applyFilters()">
+                </div>
+                <div class="filter-group">
+                    <label>VIP等级:</label>
+                    <select id="vipSelect" class="filter-select" onchange="applyFilters()">
+                        <option value="all">全部</option>
+                        <!-- 动态生成1-15 -->
+                    </select>
+                    <select id="vipCompare" class="filter-select" onchange="applyFilters()">
+                        <option value="eq">等于</option>
+                        <option value="gt">大于</option>
+                        <option value="lt">小于</option>
+                        <option value="gte">大于等于</option>
+                        <option value="lte">小于等于</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="filter-row" style="justify-content: flex-end; margin-bottom: 0;">
+                <button onclick="resetFilters()" class="btn btn-reset">重置筛选</button>
+                <div style="margin-left: 10px; align-self: center; font-size: 14px; color: #666;">
+                    共显示 <span id="displayCount" style="font-weight: bold; color: #1890ff;">0</span> 个账号
+                </div>
+            </div>
+        </div>
+
+        <div id="account-container"></div>
+    </div>
+
+    <script>
+        document.getElementById('report-time').textContent = new Date().toLocaleString();
+
+        // 初始化VIP选项
+        const vipSelect = document.getElementById('vipSelect');
+        for(let i=1; i<=15; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `VIP ${i}`;
+            vipSelect.appendChild(option);
+        }
+
+        let allData = []; // 存储原始数据
+
+        const levelMap = {
+            1: "大魂师",
+            2: "魂尊",
+            3: "魂宗",
+            4: "魂王",
+            5: "魂帝",
+            6: "魂圣",
+            7: "魂斗罗",
+            8: "封号斗罗"
+        };
+
+        // 突破等级判断逻辑
+        function checkBreakthrough(rank, level) {
+            // 1-2级 (大魂师, 魂尊) 上限40
+            if (rank >= 1 && rank <= 2) {
+                return level >= 40;
+            }
+            // 3-8级 (魂宗 - 封号斗罗) 上限90
+            if (rank >= 3 && rank <= 8) {
+                return level >= 90;
+            }
+            return false;
+        }
+
+        function getLevelName(levelCode) {
+            // 解析 3/38 格式: 级别/等级
+            if (!levelCode || typeof levelCode !== 'string') return { text: "未知", isBreak: false };
+            const parts = levelCode.split('/');
+            if (parts.length !== 2) return { text: levelCode, isBreak: false };
+            
+            const rank = parseInt(parts[0]);
+            const subLevel = parseInt(parts[1]);
+            const rankName = levelMap[rank] || `未知级别(${rank})`;
+            
+            const isBreak = checkBreakthrough(rank, subLevel);
+            
+            return {
+                text: `${rankName} ${subLevel}级`,
+                isBreak: isBreak
+            };
+        }
+
+        function isToday(dateString) {
+            if (!dateString) return false;
+            // 简单处理日期字符串，兼容 "2023-08-01 12:00:00" 格式
+            const date = new Date(dateString.replace(/-/g, "/")); 
+            const today = new Date();
+            return date.getDate() === today.getDate() &&
+                   date.getMonth() === today.getMonth() &&
+                   date.getFullYear() === today.getFullYear();
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.display = 'block';
+            setTimeout(() => {
+                toast.style.display = 'none';
+            }, 2000);
+        }
+
+        function copyToClipboard(text) {
+            // 使用新版 API，如果不支持则回退到旧版
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('复制成功: ' + text);
+                }).catch(err => {
+                    console.error('无法复制', err);
+                    fallbackCopy(text);
+                });
+            } else {
+                fallbackCopy(text);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                showToast('复制成功: ' + text);
+            } catch (err) {
+                console.error('Fallback: Oops, unable to copy', err);
+                showToast('复制失败');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function renderAccounts(data) {
+            const container = document.getElementById('account-container');
+            container.innerHTML = '';
+            
+            // 预处理数据：将扁平化的小号数据按“账号”分组
+            const groupedAccounts = {};
+            data.forEach(item => {
+                if (!item.账号) return;
+                if (!groupedAccounts[item.账号]) {
+                    groupedAccounts[item.账号] = {
+                        账号: item.账号,
+                        密码: item.密码,
+                        小号: []
+                    };
+                }
+                groupedAccounts[item.账号].小号.push(item);
+            });
+            
+            // 将对象转为数组
+            const groupedData = Object.values(groupedAccounts);
+            
+            document.getElementById('displayCount').textContent = groupedData.length; // 这里显示的其实是主账号数量，或者您可以改为显示所有小号数量 data.length
+
+            if (!Array.isArray(data)) {
+                container.innerHTML = '<div style="text-align:center; color:red;">数据格式错误，应为数组</div>';
+                return;
+            }
+            
+            if (groupedData.length === 0) {
+                container.innerHTML = '<div style="text-align:center; color:#999; padding: 40px;">没有匹配的账号数据</div>';
+                return;
+            }
+
+            groupedData.forEach((account) => {
+                const accountCard = document.createElement('div');
+                accountCard.className = 'account-card';
+                
+                let subAccountsHtml = '';
+                
+                if (account.小号 && Array.isArray(account.小号)) {
+                    account.小号.forEach(sub => {
+                        // 活跃度判断
+                        const activity = parseInt(sub.活跃度) || 0;
+                        const isActivityLow = activity < 120;
+                        const activityClass = isActivityLow ? 'warning' : 'success';
+                        
+                        // 更新时间判断
+                        const updatedToday = isToday(sub.更新时间);
+                        const updateTimeClass = updatedToday ? 'success' : 'warning';
+                        const updateStatusBadge = updatedToday ? 
+                            '<span class="status-badge status-active">今日已运行</span>' : 
+                            '<span class="status-badge status-inactive">今日未运行</span>';
+
+                        // 角色等级渲染
+                        let rolesHtml = '';
+                        if (sub.角色等级 && Array.isArray(sub.角色等级)) {
+                            sub.角色等级.forEach(roleLevel => {
+                                const levelInfo = getLevelName(roleLevel);
+                                const badgeClass = levelInfo.isBreak ? 'role-badge need-breakthrough' : 'role-badge';
+                                const tipHtml = levelInfo.isBreak ? '<span class="breakthrough-tip">需突破</span>' : '';
+                                
+                                rolesHtml += `
+                                    <div class="${badgeClass}">
+                                        <span class="level-name">${levelInfo.text}</span>
+                                        ${tipHtml}
+                                    </div>
+                                `;
+                            });
+                        }
+
+                        subAccountsHtml += `
+                            <div class="sub-account-item">
+                                <div class="sub-account-info">
+                                    <div class="grid-row" style="width: 100%;">
+                                        <div class="info-cell"><span class="label">角色名:</span> <span class="value">${sub.角色名 || '无'}</span></div>
+                                        <div class="info-cell"><span class="label">用户名:</span> <span class="value">${sub.用户名 || '无'}</span></div>
+                                        <div class="info-cell">
+                                            <span class="label">活跃度:</span> 
+                                            <span class="info-tag ${activityClass}">${activity}</span>
+                                        </div>
+                                        <div class="info-cell">
+                                            <span class="label">更新时间:</span> 
+                                            <span class="info-tag ${updateTimeClass}">${sub.更新时间 || '无'}</span>
+                                            ${updateStatusBadge}
+                                        </div>
+                                        <div class="info-cell"><span class="label">钻石:</span> <span class="value">${sub.钻石数 || 0}</span></div>
+                                        <div class="info-cell"><span class="label">代金币:</span> <span class="value">${sub.代金币数 || 0}</span></div>
+                                        <div class="info-cell"><span class="label">VIP:</span> <span class="value">${sub.vip等级 || 0}</span></div>
+                                    </div>
+                                </div>
+                                <div><span class="label">角色等级:</span></div>
+                                <div class="role-list" style="margin-top: 5px;">
+                                    ${rolesHtml || '<span style="color:#999;">无角色信息</span>'}
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    subAccountsHtml = '<div style="padding:15px; text-align:center; color:#999;">无小号信息</div>';
+                }
+
+                accountCard.innerHTML = `
+                    <div class="account-header">
+                        <div style="display: flex; align-items: center;">
+                            <h3>主账号: ${account.账号}</h3>
+                            <button class="copy-btn" onclick="copyToClipboard('${account.账号}')">复制账号</button>
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                            <span>密码: ******</span>
+                            <button class="copy-btn" onclick="copyToClipboard('${account.密码}')">复制密码</button>
+                        </div>
+                    </div>
+                    <div class="sub-account-list">
+                        ${subAccountsHtml}
+                    </div>
+                `;
+                container.appendChild(accountCard);
+            });
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    allData = JSON.parse(e.target.result);
+                    applyFilters(); // 加载后立即应用筛选
+                } catch (error) {
+                    alert('JSON解析失败: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function loadDefaultData() {
+            // 默认示例数据
+            allData = [
+                {
+                    "用户名": "13000000001",
+                    "角色名": "示例小号1",
+                    "活跃度": "100",
+                    "钻石数": "200",
+                    "账号": "13000000000",
+                    "密码": "123456",
+                    "vip等级": "1",
+                    "代金币数": "20",
+                    "角色等级": [
+                    "3/38",
+                    "4/90", 
+                    "2/40"
+                    ],
+                    "更新时间": "2023-08-01 12:00:00"
+                },
+                {
+                    "用户名": "13000000002",
+                    "角色名": "示例小号2 (今日已运行)",
+                    "活跃度": "150",
+                    "钻石数": "500",
+                    "账号": "13000000000",
+                    "密码": "123456",
+                    "vip等级": "3",
+                    "代金币数": "100",
+                    "角色等级": [
+                    "5/90",
+                    "5/49"
+                    ],
+                    "更新时间": new Date().toISOString().slice(0, 10) + " 08:30:00"
+                }
+            ];
+            applyFilters();
+        }
+        
+        function resetFilters() {
+            document.getElementById('searchText').value = '';
+            document.getElementById('activityFilter').value = 'all';
+            document.getElementById('runStatusFilter').value = 'all';
+            document.getElementById('breakFilter').value = 'all';
+            document.getElementById('diamondMin').value = '';
+            document.getElementById('diamondMax').value = '';
+            document.getElementById('coinMin').value = '';
+            document.getElementById('coinMax').value = '';
+            document.getElementById('vipSelect').value = 'all';
+            document.getElementById('vipCompare').value = 'eq';
+            applyFilters();
+        }
+
+        function applyFilters() {
+            // 获取所有筛选条件
+            const searchText = document.getElementById('searchText').value.toLowerCase();
+            const activityFilter = document.getElementById('activityFilter').value;
+            const runStatusFilter = document.getElementById('runStatusFilter').value;
+            const breakFilter = document.getElementById('breakFilter').value;
+            
+            const diamondMin = document.getElementById('diamondMin').value;
+            const diamondMax = document.getElementById('diamondMax').value;
+            
+            const coinMin = document.getElementById('coinMin').value;
+            const coinMax = document.getElementById('coinMax').value;
+            
+            const vipVal = document.getElementById('vipSelect').value;
+            const vipCompare = document.getElementById('vipCompare').value;
+
+            // 过滤逻辑：新的扁平化结构，直接过滤数组
+            const filteredData = allData.filter(sub => {
+                // 1. 文本搜索 (账号/用户名/角色名)
+                const searchMatch = !searchText || 
+                    (sub.账号 && sub.账号.toLowerCase().includes(searchText)) ||
+                    (sub.用户名 && sub.用户名.toLowerCase().includes(searchText)) ||
+                    (sub.角色名 && sub.角色名.toLowerCase().includes(searchText));
+                if (!searchMatch) return false;
+
+                // 2. 活跃度筛选
+                const activity = parseInt(sub.活跃度) || 0;
+                if (activityFilter === 'low' && activity >= 120) return false;
+                if (activityFilter === 'high' && activity < 120) return false;
+
+                // 3. 今日运行状态
+                const updatedToday = isToday(sub.更新时间);
+                if (runStatusFilter === 'yes' && !updatedToday) return false;
+                if (runStatusFilter === 'no' && updatedToday) return false;
+
+                // 4. 钻石数区间
+                const diamond = parseInt(sub.钻石数) || 0;
+                if (diamondMin !== '' && diamond < parseInt(diamondMin)) return false;
+                if (diamondMax !== '' && diamond > parseInt(diamondMax)) return false;
+
+                // 5. 代金币区间
+                const coin = parseInt(sub.代金币数) || 0;
+                if (coinMin !== '' && coin < parseInt(coinMin)) return false;
+                if (coinMax !== '' && coin > parseInt(coinMax)) return false;
+
+                // 6. VIP等级判断
+                if (vipVal !== 'all') {
+                    const vip = parseInt(sub.vip等级) || 0;
+                    const targetVip = parseInt(vipVal);
+                    switch(vipCompare) {
+                        case 'eq': if(vip !== targetVip) return false; break;
+                        case 'gt': if(vip <= targetVip) return false; break;
+                        case 'lt': if(vip >= targetVip) return false; break;
+                        case 'gte': if(vip < targetVip) return false; break;
+                        case 'lte': if(vip > targetVip) return false; break;
+                    }
+                }
+                
+                // 7. 突破状态筛选
+                if (breakFilter !== 'all') {
+                    let hasBreak = false;
+                    if (sub.角色等级 && Array.isArray(sub.角色等级)) {
+                        hasBreak = sub.角色等级.some(roleLevel => {
+                            return getLevelName(roleLevel).isBreak;
+                        });
+                    }
+                    if (breakFilter === 'yes' && !hasBreak) return false;
+                    if (breakFilter === 'no' && hasBreak) return false;
+                }
+
+                return true;
+            });
+
+            renderAccounts(filteredData);
+        }
+
+        // 默认加载
+        loadDefaultData();
+    </script>
+</body>
+</html>
