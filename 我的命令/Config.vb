@@ -28,7 +28,7 @@ Function 释放附件到指定目录(dirPath, fileName)
     释放附件到指定目录 = content
 End Function
 
-Function 加载分辨率配置文件(w, h, dirPath, fileName)
+Function 加载分辨率配置文件(name, dirPath, fileName)
     If dirPath = "" Or dirPath = Null Then
         dirPath = GetSdcardDir()
     End If
@@ -42,7 +42,7 @@ Function 加载分辨率配置文件(w, h, dirPath, fileName)
     Dim config_table, res_key, res_config
     If content <> "" And content <> Null Then
         config_table = Encode.JsonToTable(content)
-        res_key = w & "*" & h
+        res_key = name
 
         If config_table[res_key] Then
             res_config = config_table[res_key]

@@ -5,12 +5,7 @@ Import "Config.mql"
 
 // 加载分辨率配置文件
 Dim g_xy
-Dim screenX,screenY
-screenX = GetScreenX()
-screenY = GetScreenY()
-
-
-g_xy =  Config.加载分辨率配置文件(screenX,screenY,"","")
+g_xy =  Config.加载分辨率配置文件("mumu","","")
 
 Call 游戏登录(1)
 Function 重启()
@@ -342,7 +337,7 @@ Function 处理公告并进入游戏(角色名, 开始时间)
             处理公告并进入游戏 = True
             Exit Function
         End If
-        If 区域是否包含指定文字(g_xy["登录界面公告"]["x1"], g_xy["登录界面公告"]["y1"], g_xy["登录界面公告"]["x2"], g_xy["登录界面公告"]["y2"], "暴金") Then
+        If 区域是否包含指定文字(g_xy["登录界面公告"]["x1"], g_xy["登录界面公告"]["y1"], g_xy["登录界面公告"]["x2"], g_xy["登录界面公告"]["y2"], "公告") Then
             TracePrint "检测到公告界面，执行关闭公告并进入游戏" & g_xy["登录界面关闭公告"]["x1"], g_xy["登录界面关闭公告"]["y1"]
             Tap g_xy["登录界面关闭公告"]["x1"], g_xy["登录界面关闭公告"]["y1"]
             Delay 1500
