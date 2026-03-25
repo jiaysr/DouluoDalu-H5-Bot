@@ -63,26 +63,67 @@ End Function
 
 
 Function 执行登录操作(账号, 密码, 用户名,角色名)
-    Dim 开始时间
+    Dim 开始时间, 界面状态
     开始时间 = TickCount()
     TracePrint "开始执行登录操作，账号：" & 账号 & "，用户名：" & 用户名 & "，角色名：" & 角色名
-    If Sys.IsRunning("com.df.dldldjbzf.sj") = True Then 
+    If Sys.IsRunning("com.df.dldldjbzf.sj") = True Then
         KillApp "com.df.dldldjbzf.sj"
         Delay 1000
     End If
     RunApp "com.df.dldldjbzf.sj"
     Delay 1000
+
+    // 等待登录界面，同时判断是"已登录"还是"未登录"状态
+    界面状态 = ""
     Do
         If TickCount() - 开始时间 > 30000 Then
             Call 发送PushPlus(g_pushplus_token, "登录失败", "等待登录界面超时:" & 账号)
             Exit Function
         End If
-        TracePrint "检测登录界面增加小号文字..."
+        TracePrint "检测登录界面状态..."
+        // 检测未登录状态：确认登录按钮
+        If 区域是否包含指定文字(g_xy["登录界面确认密码登录"]["x1"], g_xy["登录界面确认密码登录"]["y1"], g_xy["登录界面确认密码登录"]["x2"], g_xy["登录界面确认密码登录"]["y2"], "密码登录") Then
+            TracePrint "检测到确认登录界面，当前为未登录状态"
+            界面状态 = "未登录"
+            Exit Do
+        End If
+        // 检测已登录状态：增加小号文字
         If 区域是否包含指定文字(g_xy["登录界面增加小号文字"]["x1"], g_xy["登录界面增加小号文字"]["y1"], g_xy["登录界面增加小号文字"]["x2"], g_xy["登录界面增加小号文字"]["y2"], "增加小号") Then
+            TracePrint "检测到增加小号文字，当前为已登录状态"
+            界面状态 = "已登录"
             Exit Do
         End If
         Delay 500
     Loop
+
+    If 界面状态 = "未登录" Then
+        // 未登录：跳过找切换账号按钮，直接输入账号密码
+        TracePrint "执行未登录账号流程，输入账号密码登录..."
+        If Not 切换并登录账号(账号, 密码, 开始时间, True) Then
+            Call 发送PushPlus(g_pushplus_token, "登录失败", "切换账号失败:" & 账号)
+            Exit Function
+        End If
+        // 登录成功后，重新等待登录界面出现（此时应为新账号的已登录状态）
+        TracePrint "登录成功，等待登录界面出现..."
+        开始时间 = TickCount()
+        Do
+            If TickCount() - 开始时间 > 30000 Then
+                Call 发送PushPlus(g_pushplus_token, "登录失败", "登录后等待界面超时:" & 账号)
+                Exit Function
+            End If
+            TracePrint "检测登录后界面状态..."
+            If 区域是否包含指定文字(g_xy["登录界面确认登录"]["x1"], g_xy["登录界面确认登录"]["y1"], g_xy["登录界面确认登录"]["x2"], g_xy["登录界面确认登录"]["y2"], "确认登录") Then
+                TracePrint "登录后仍为未登录状态，可能登录未成功"
+                Exit Function
+            End If
+            If 区域是否包含指定文字(g_xy["登录界面增加小号文字"]["x1"], g_xy["登录界面增加小号文字"]["y1"], g_xy["登录界面增加小号文字"]["x2"], g_xy["登录界面增加小号文字"]["y2"], "增加小号") Then
+                TracePrint "登录成功，检测到已登录状态"
+                Exit Do
+            End If
+            Delay 500
+        Loop
+    End If
+    // 已登录：判断当前账号是否为目标账号（未登录执行完切换后也走这里）
     Do
         If TickCount() - 开始时间 > 30000 Then
             Call 发送PushPlus(g_pushplus_token, "登录失败", "选择账号超时:" & 账号)
@@ -93,14 +134,15 @@ Function 执行登录操作(账号, 密码, 用户名,角色名)
             TracePrint "当前账号已是目标账号"
             Exit Do
         Else
-            TracePrint "当前账号不是目标账号，执行切换并登录账号"
-            If Not 切换并登录账号(账号, 密码, 开始时间) Then
+            TracePrint "当前账号不是目标账号，切换已登录账号"
+            If Not 切换已登录账号(账号, 开始时间) Then
                 Call 发送PushPlus(g_pushplus_token, "登录失败", "切换账号失败:" & 账号)
                 Exit Function
             End If
         End If
         Delay 500
     Loop
+
     If Not 选择用户名(用户名, 开始时间) Then
         Call 发送PushPlus(g_pushplus_token, "登录失败", "未找到用户名:" & 用户名)
         Exit Function
@@ -237,31 +279,35 @@ Sub 按配置滑动(keyName)
     t = 500
     Call 滑动(sx, sy, ex, ey, t)
 End Sub
-Function 切换并登录账号(账号, 密码, 开始时间)
+Function 切换并登录账号(账号, 密码, 开始时间, 是否已显示密码登录)
     Dim intX, intY
     Dim i
     Dim 协议x, 协议y, 颜色值
     切换并登录账号 = False
     TracePrint "开始切换并登录账号：" & 账号
-    FindPic g_xy["登录界面当前账号"]["x1"], g_xy["登录界面当前账号"]["y1"], g_xy["登录界面当前账号"]["x2"], g_xy["登录界面当前账号"]["y2"], "Attachment:切换账号按钮.png", "000000",4, 0.9, intX, intY
-    If intX > 0 And intY > 0 Then
-        TracePrint "找到切换账号按钮，坐标：" & intX & "," & intY
-        Tap intX, intY
-    Else
-        TracePrint "未找到切换账号按钮"
-        Exit Function
 
-    End If
-    Do
-        If TickCount() - 开始时间 > 30000 Then
+    If Not 是否已显示密码登录 Then
+        // 未显示密码登录界面，需要先找到切换账号入口
+        FindPic g_xy["登录界面当前账号"]["x1"], g_xy["登录界面当前账号"]["y1"], g_xy["登录界面当前账号"]["x2"], g_xy["登录界面当前账号"]["y2"], "Attachment:切换账号按钮.png", "000000",4, 0.9, intX, intY
+        If intX > 0 And intY > 0 Then
+            TracePrint "找到切换账号按钮，坐标：" & intX & "," & intY
+            Tap intX, intY
+        Else
+            TracePrint "未找到切换账号按钮"
             Exit Function
         End If
-        If 区域是否包含指定文字(g_xy["登录界面确认登录"]["x1"], g_xy["登录界面确认登录"]["y1"], g_xy["登录界面确认登录"]["x2"], g_xy["登录界面确认登录"]["y2"], "确认登录") Then
-            TracePrint "检测到确认登录界面"
-            Exit Do
-        End If
-        Delay 500
-    Loop
+        Do
+            If TickCount() - 开始时间 > 30000 Then
+                Exit Function
+            End If
+            If 区域是否包含指定文字(g_xy["登录界面确认登录"]["x1"], g_xy["登录界面确认登录"]["y1"], g_xy["登录界面确认登录"]["x2"], g_xy["登录界面确认登录"]["y2"], "确认登录") Then
+                TracePrint "检测到确认登录界面"
+                Exit Do
+            End If
+            Delay 500
+        Loop
+    End If
+
     Tap g_xy["登录界面密码登录"]["x1"], g_xy["登录界面密码登录"]["y1"]
     TracePrint "点击密码登录"
     Delay 500
@@ -298,6 +344,30 @@ Function 切换并登录账号(账号, 密码, 开始时间)
     Delay 1000
     切换并登录账号 = True
     TracePrint "切换并登录账号流程结束"
+End Function
+// 切换已登录账号（不需要FindPic切换按钮，直接点击当前账号区域触发切换）
+Function 切换已登录账号(账号, 开始时间)
+    Dim intX, intY
+    切换已登录账号 = False
+    TracePrint "开始切换已登录账号：" & 账号
+    // 直接点击当前账号区域，弹出账号选择列表
+    Tap g_xy["登录界面当前账号"]["x1"], g_xy["登录界面当前账号"]["y1"]
+    Delay 1000
+    Do
+        If TickCount() - 开始时间 > 30000 Then
+            Exit Function
+        End If
+        If 区域是否包含指定文字(g_xy["登录界面确认登录"]["x1"], g_xy["登录界面确认登录"]["y1"], g_xy["登录界面确认登录"]["x2"], g_xy["登录界面确认登录"]["y2"], "确认登录") Then
+            TracePrint "检测到确认登录界面，进入密码登录流程"
+            Exit Do
+        End If
+        Delay 500
+    Loop
+    If Not 切换并登录账号(账号, "", 开始时间, False) Then
+        Exit Function
+    End If
+    切换已登录账号 = True
+    TracePrint "切换已登录账号流程结束"
 End Function
 Function 选择用户名(用户名, 开始时间)
     Dim 滑动次数
@@ -341,8 +411,34 @@ Function 处理公告并进入游戏(角色名, 开始时间)
             TracePrint "检测到公告界面，执行关闭公告并进入游戏" & g_xy["登录界面关闭公告"]["x1"], g_xy["登录界面关闭公告"]["y1"]
             Tap g_xy["登录界面关闭公告"]["x1"], g_xy["登录界面关闭公告"]["y1"]
             Delay 1500
-            Tap g_xy["登录界面进入游戏"]["x1"], g_xy["登录界面进入游戏"]["y1"]
-            Delay 1000
+            // 等待进入游戏按钮出现
+            Do
+                If TickCount() - 开始时间 > 30000 Then
+                    TracePrint "等待进入游戏按钮超时"
+                    Exit Function
+                End If
+                If 区域是否包含指定文字(g_xy["登录界面进入游戏按钮判断"]["x1"], g_xy["登录界面进入游戏按钮判断"]["y1"], g_xy["登录界面进入游戏按钮判断"]["x2"], g_xy["登录界面进入游戏按钮判断"]["y2"], "进入游戏") Then
+                    TracePrint "检测到进入游戏按钮"
+                    Exit Do
+                End If
+                Delay 500
+            Loop
+            // 判断用户协议颜色
+            Dim 协议颜色
+            协议颜色 = GetPixelColor(g_xy["登录界面用户协议"]["x1"], g_xy["登录界面用户协议"]["y1"], 0)
+            TracePrint "当前用户协议颜色：" & 协议颜色
+            If 协议颜色 <> "51C05A" Then
+                TracePrint "用户协议未勾选，点击勾选"
+                Tap g_xy["登录界面用户协议"]["x1"], g_xy["登录界面用户协议"]["y1"]
+                Delay 500
+                协议颜色 = GetPixelColor(g_xy["登录界面用户协议"]["x1"], g_xy["登录界面用户协议"]["y1"], 0)
+                TracePrint "勾选后用户协议颜色：" & 协议颜色
+            End If
+            If 协议颜色 = "51C05A" Then
+                TracePrint "用户协议已勾选，点击进入游戏"
+                Tap g_xy["登录界面进入游戏"]["x1"], g_xy["登录界面进入游戏"]["y1"]
+                Delay 1000
+            End If
         End If
         Delay 500
     Loop
