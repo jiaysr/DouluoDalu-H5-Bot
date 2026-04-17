@@ -7,7 +7,7 @@ Import "Config.mql"
 Dim g_xy
 g_xy =  Config.加载分辨率配置文件("mumu","","")
 
-Call 游戏登录(1)
+Call 游戏登录(1, False)
 Function 重启()
     Dim x1,y1,upx,upy
     If Sys.IsRunning("com.df.dldldjbzf.s") = True Then 
@@ -20,10 +20,12 @@ Function 重启()
        
     Loop
 End Function
-Function 游戏登录(index)
+Function 游戏登录(index, 自动登录)
     Dim 账号, 密码, 用户名,角色名
     Dim path, content, accounts, account, subAccounts, subAccount, i, j, currentIndex
-    
+    Dim 当前时间, 更新日期, 更新小时, 是否需要登录
+    Dim 更新日期时间
+
     // 1. 读取账号.json文件
     path = GetSdcardDir() & "/账号.json"
     content = file.Read(path)
@@ -37,24 +39,84 @@ Function 游戏登录(index)
         TracePrint "账号配置解析失败"
         Exit Function
     End If
-    
-    // 3. 查找对应index的小号
+
+    // 3. 获取当前网络时间
+    当前时间 = GetNetworkTime()
+    TracePrint "当前网络时间：" & 当前时间
+
+    // 4. 判断是否为自动登录模式
+    If 自动登录 = True Then
+        TracePrint "自动登录模式：从第一个账号开始检查更新时间"
+        // 遍历所有账号，找到第一个需要登录的账号
+        For i = 1 To Len(accounts)
+            account = accounts[i]
+            更新日期 = account["更新时间"]
+            TracePrint "检查第 " & i & " 个账号，更新时间：" & 更新日期
+
+            // 判断更新时间是否在今天服务器刷新时间（4:00）之前
+            // 解析更新时间
+            If 更新日期 <> "" And 更新日期 <> Null Then
+                // 提取日期部分（YYYY-MM-DD）
+                更新日期时间 = Left(更新日期, 10)
+                // 提取小时部分
+                更新小时 = Mid(更新日期, 12, 2)
+                更新小时 = CInt(更新小时)
+
+                // 判断逻辑：
+                // 1. 如果更新日期是今天，且更新时间在4:00之后，说明今天已登录
+                // 2. 如果更新日期是今天之前，说明昨天或更早登录
+                // 3. 如果更新日期是今天且在4:00之前，说明需要登录
+                If Left(当前时间, 10) = 更新日期时间 Then
+                    // 更新日期是今天
+                    If 更新小时 >= 4 Then
+                        TracePrint "账号今日已登录，跳过"
+                        是否需要登录 = False
+                    Else
+                        TracePrint "账号今日4点前登录，需要重新登录"
+                        是否需要登录 = True
+                    End If
+                Else
+                    // 更新日期不是今天，需要登录
+                    TracePrint "账号更新日期不是今天，需要登录"
+                    是否需要登录 = True
+                End If
+            Else
+                // 没有更新时间记录，需要登录
+                TracePrint "账号无更新时间记录，需要登录"
+                是否需要登录 = True
+            End If
+
+            If 是否需要登录 = True Then
+                TracePrint "找到需要登录的账号，index：" & i
+                index = i
+                Exit For
+            End If
+        Next
+
+        // 如果遍历完所有账号都没有找到需要登录的，返回空
+        If 是否需要登录 = False Then
+            TracePrint "所有账号今日已完成登录，无需操作"
+            Exit Function
+        End If
+    End If
+
+    // 5. 查找对应index的小号
     // 由于JSON结构是扁平的数组，直接根据index获取即可
     If index > 0 And index <= Len(accounts) Then
         account = accounts[index]
-        
+
         账号 = account["账号"]
         密码 = account["密码"]
         用户名 = account["用户名"]
         角色名=account["角色名"]
-        
+
         TracePrint "找到第 " & index & " 个小号信息："
         TracePrint "账号: " & 账号
-        // TracePrint "密码: " & 密码 
+        // TracePrint "密码: " & 密码
         TracePrint "用户名: " & 用户名
-        
+
         Call 执行登录操作(账号, 密码, 用户名, 角色名)
-        
+
         Exit Function
     Else
         TracePrint "未找到第 " & index & " 个小号，索引超出范围"
